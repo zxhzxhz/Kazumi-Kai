@@ -30,6 +30,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/danmaku_source_sheet.dart';
+import 'package:kazumi/pages/player/player_fps_overlay.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -1423,6 +1424,14 @@ class _PlayerItemState extends State<PlayerItem>
                     Center(
                       key: _videoSurfaceKey,
                       child: PlayerItemSurface(
+                        playerController: playerController,
+                      ),
+                    ),
+                    // 帧率/增强状态角标（在"更多选项"里开关）。
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: PlayerFpsOverlay(
                         playerController: playerController,
                       ),
                     ),

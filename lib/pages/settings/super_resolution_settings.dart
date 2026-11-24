@@ -19,6 +19,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   late SuperResolutionMode superResolutionMode;
   late bool videoEnhanceEnabled;
   late bool videoEnhanceInterpolationEnabled;
+  late bool videoEnhanceScalingEnabled;
   late int videoEnhanceAnime4kLevel;
 
   @override
@@ -35,6 +36,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
     videoEnhanceInterpolationEnabled = GStorage.getSetting<bool>(
       SettingsKeys.videoEnhanceInterpolation,
     );
+    videoEnhanceScalingEnabled =
+        GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor) > 1.0;
     videoEnhanceAnime4kLevel =
         GStorage.getSetting<int>(SettingsKeys.videoEnhanceAnime4k);
   }
@@ -42,7 +45,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   @override
   Widget build(BuildContext context) {
     return SettingsDetailScaffold(
-      title: const Text('超分辨率'),
+      title: const Text('视频增强'),
       body: SettingsList(
         sections: [
           SettingsRadioSection<SuperResolutionMode>(
@@ -117,6 +120,23 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   await GStorage.putSetting<bool>(
                     SettingsKeys.videoEnhanceInterpolation,
                     videoEnhanceInterpolationEnabled,
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.hd_rounded,
+                title: const Text('VT 放大（2x）'),
+                description:
+                    const Text('用 VideoToolbox 将画面放大 2 倍，需 iPadOS 26；与 Anime4K 互斥'),
+                initialValue: videoEnhanceScalingEnabled,
+                enabled: Platform.isIOS && videoEnhanceEnabled,
+                onToggle: (value) async {
+                  videoEnhanceScalingEnabled =
+                      value ?? !videoEnhanceScalingEnabled;
+                  await GStorage.putSetting<double>(
+                    SettingsKeys.videoEnhanceScaleFactor,
+                    videoEnhanceScalingEnabled ? 2.0 : 0.0,
                   );
                   if (mounted) setState(() {});
                 },

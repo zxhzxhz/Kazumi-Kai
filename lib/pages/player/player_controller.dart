@@ -423,6 +423,7 @@ class PlayerController implements Disposable {
     hideVolumeUITimer?.cancel();
     _volumeGestureSyncTimer?.cancel();
     FlutterVolumeController.removeListener();
+    playback.stopEnhanceWatch();
     await Future.wait([
       audioController.deactivate(),
       playback.stop(),

@@ -637,13 +637,69 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         onSelected: widget.setPlaybackSpeed,
       );
 
-  List<Widget> get _superResolutionItems => _choiceItems(
+  /// 视频增强菜单：VT 插帧、VT 放大（仅 iOS），以及 Anime4K 档位。
+  ///
+  /// 所有开关直接写 GStorage，由 [PlayerPlaybackController.watchEnhanceSettings]
+  /// 统一触发热切换，所以设置页和这里的行为保持一致。
+  List<Widget> get _videoEnhanceItems {
+    final interpolation =
+        GStorage.getSetting<bool>(SettingsKeys.videoEnhanceInterpolation);
+    final scaling =
+        GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor) > 1.0;
+    return [
+      if (Platform.isIOS) ...[
+        ..._choiceItems<bool>(
+          const [true, false],
+          label: (value) => value ? 'VT 插帧：开（2x）' : 'VT 插帧：关',
+          selected: (value) => value == interpolation,
+          onSelected: (value) => _setVtInterpolation(value),
+        ),
+        ..._choiceItems<bool>(
+          const [true, false],
+          label: (value) => value ? 'VT 放大：开（2x）' : 'VT 放大：关',
+          selected: (value) => value == scaling,
+          onSelected: (value) => _setVtScaling(value),
+        ),
+        const Divider(),
+      ],
+      ..._choiceItems(
         SuperResolutionMode.values,
-        label: (value) => value.label,
+        label: (value) => 'Anime4K：${value.label}',
         selected: (value) =>
             value == playerController.playback.superResolutionMode,
         onSelected: widget.handleSuperResolutionChange,
-      );
+      ),
+    ];
+  }
+
+  Future<void> _setVtInterpolation(bool enabled) async {
+    await GStorage.putSetting<bool>(
+      SettingsKeys.videoEnhanceInterpolation,
+      enabled,
+    );
+    if (enabled) {
+      await _ensureEnhanceEnabled();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _setVtScaling(bool enabled) async {
+    await GStorage.putSetting<double>(
+      SettingsKeys.videoEnhanceScaleFactor,
+      enabled ? 2.0 : 0.0,
+    );
+    if (enabled) {
+      await _ensureEnhanceEnabled();
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// 打开单个 VT 开关时自动打开总开关，否则用户会以为开关无效。
+  Future<void> _ensureEnhanceEnabled() async {
+    if (GStorage.getSetting<int>(SettingsKeys.videoEnhanceMode) == 0) {
+      await GStorage.putSetting<int>(SettingsKeys.videoEnhanceMode, 1);
+    }
+  }
 
   Widget _menuButton(
           {required Widget child,
@@ -707,8 +763,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             const Spacer(),
         ],
         _menuButton(
-          child: const Text('超分辨率', style: TextStyle(color: Colors.white)),
-          items: _superResolutionItems,
+          child: const Text('视频增强', style: TextStyle(color: Colors.white)),
+          items: _videoEnhanceItems,
         ),
         _menuButton(
           child: Text(
@@ -907,13 +963,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     SubmenuButton(
                         menuChildren: _speedItems, child: const Text('倍速')),
                     SubmenuButton(
-                        menuChildren: _superResolutionItems,
-                        child: const Text('超分辨率')),
+                        menuChildren: _videoEnhanceItems,
+                        child: const Text('视频增强')),
                     _syncPlayMenuItem,
                   ],
                   KazumiMenuItem(
                     onPressed: widget.showDanmakuSwitch,
                     label: '弹幕切换',
+                  ),
+                  KazumiMenuItem(
+                    onPressed: () async {
+                      final shown = GStorage.getSetting<bool>(
+                        SettingsKeys.playerShowFps,
+                      );
+                      await GStorage.putSetting<bool>(
+                        SettingsKeys.playerShowFps,
+                        !shown,
+                      );
+                    },
+                    label: GStorage.getSetting<bool>(SettingsKeys.playerShowFps)
+                        ? '关闭帧率显示'
+                        : '显示帧率',
+                    selected: GStorage.getSetting<bool>(
+                      SettingsKeys.playerShowFps,
+                    ),
                   ),
                   if (compact) _danmakuSettingsMenuItem,
                   KazumiMenuItem(

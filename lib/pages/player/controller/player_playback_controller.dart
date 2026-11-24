@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -90,6 +91,29 @@ abstract class _PlayerPlaybackController with Store {
 
   /// 历史记录传入的 offset
   int startOffset = 0;
+
+  /// 监听视频增强设置变化，实现播放中实时切换。
+  StreamSubscription<void>? _enhanceSettingsSubscription;
+
+  /// 开始监听视频增强设置（幂等）。
+  ///
+  /// 设置页、播放器面板、or 任何写 GStorage 的地方改动这四个键后，这里统一
+  /// 触发一次热切换，避免每个入口各自持有 PlayerController 再手动调用。
+  void watchEnhanceSettings() {
+    _enhanceSettingsSubscription ??= GStorage.watchSettings([
+      SettingsKeys.videoEnhanceMode,
+      SettingsKeys.videoEnhanceInterpolation,
+      SettingsKeys.videoEnhanceScaleFactor,
+      SettingsKeys.videoEnhanceAnime4k,
+    ]).listen((_) {
+      unawaited(setEnhancePipeline());
+    });
+  }
+
+  void stopEnhanceWatch() {
+    _enhanceSettingsSubscription?.cancel();
+    _enhanceSettingsSubscription = null;
+  }
 
   /// 当前超分辨率模式
   @observable
@@ -275,6 +299,8 @@ abstract class _PlayerPlaybackController with Store {
     VideoSourceFormat videoSourceFormat = VideoSourceFormat.auto,
   }) async {
     startOffset = offset;
+    // 设置改动（设置页 / 播放器面板）通过 GStorage 单点驱动热切换。
+    watchEnhanceSettings();
     superResolutionMode = SuperResolutionMode.fromStorageValue(
       GStorage.getSetting(SettingsKeys.defaultSuperResolutionMode),
     );

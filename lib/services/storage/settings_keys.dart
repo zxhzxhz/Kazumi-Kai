@@ -444,6 +444,12 @@ class SettingsKeys {
     0,
     group: SettingGroup.player,
   );
+  /// 播放器覆盖层显示当前呈现帧率。
+  static const playerShowFps = SettingKey<bool>(
+    'playerShowFps',
+    false,
+    group: SettingGroup.player,
+  );
   static const playerDisableAnimations = SettingKey<bool>(
     _SettingBoxKey.playerDisableAnimations,
     false,
@@ -686,6 +692,7 @@ class SettingsKeys {
     videoEnhanceInterpolation,
     videoEnhanceScaleFactor,
     videoEnhanceAnime4k,
+    playerShowFps,
     playerDisableAnimations,
     playerLogLevel,
     timelineNotShowAbandonedBangumis,
