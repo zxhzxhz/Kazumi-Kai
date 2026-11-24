@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 /// 播放器角标：实时呈现帧率与增强管线状态。
@@ -28,6 +29,7 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
   String _status = '';
   int? _lastFrames;
   DateTime _lastSample = DateTime.now();
+  String _lastLoggedStatus = '';
 
   @override
   void initState() {
@@ -91,6 +93,15 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
         _fps = (stats.presentedFrames - previous) / elapsed;
       }
     });
+
+    // NSLog 不进 Kazumi 的日志文件，所以把渲染器状态的变化写一份到
+    // KazumiLogger，出问题时可以直接从容器里取日志定位。
+    if (stats.status != _lastLoggedStatus) {
+      _lastLoggedStatus = stats.status;
+      KazumiLogger().i(
+        '[Enhance] fps=${_fps.toStringAsFixed(1)} $stats',
+      );
+    }
   }
 
   @override
