@@ -17,6 +17,7 @@ import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -92,6 +93,12 @@ class _PlayerItemState extends State<PlayerItem>
   final _videoSurfaceKey = GlobalKey();
   late bool _border;
   late double _opacity;
+  /// 保持 Flutter 以屏幕原生刷新率持续请求帧。
+  ///
+  /// 不跑这个 Ticker 时，播放页除了纹理更新没有别的动画，Flutter 引擎会跟着
+  /// mpv 的 24 Hz 通知节流：通知 24 次 → raster 24 次 → 拉纹理 24 次。结果是
+  /// native 侧即使产出了 48 帧/秒，Flutter 也只呈现 24 次，插帧永远看不见。
+  late final Ticker _pacingTicker;
   double get _fontSize => GStorage.getSetting(
         SettingsKeys.danmakuFontSize,
         context: SettingContext(
@@ -1260,6 +1267,7 @@ class _PlayerItemState extends State<PlayerItem>
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    _pacingTicker = createTicker((_) {})..start();
     _initKeyboardActions();
     _initPlayerMenu();
     _fullscreenListener = mobx.reaction<bool>(
@@ -1355,6 +1363,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void dispose() {
+    _pacingTicker.dispose();
     // The route-scoped PlayerController owns playback disposal.
     _fullscreenListener();
     _playerSizeListener();
