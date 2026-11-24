@@ -95,12 +95,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/zxhzxhz/media-kit.git
-      ref: bb056a8cdd75cb70987aa49b886bee3b67dc8f6f
+      ref: ab3f117eb0697a58b29b4b19f5f45e3fc19774e4
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/zxhzxhz/media-kit.git
-      ref: bb056a8cdd75cb70987aa49b886bee3b67dc8f6f
+      ref: ab3f117eb0697a58b29b4b19f5f45e3fc19774e4
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
 

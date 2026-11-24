@@ -29,7 +29,7 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
   String _status = '';
   int? _lastFrames;
   DateTime _lastSample = DateTime.now();
-  String _lastLoggedStatus = '';
+  int _sampleCount = 0;
 
   @override
   void initState() {
@@ -49,6 +49,10 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
       _syncTimer();
     });
     _syncTimer();
+    if (_visible) {
+      // 立即采一次，别等第一个 500 ms tick：状态行和日志都能马上有内容。
+      _sample();
+    }
   }
 
   @override
@@ -94,12 +98,14 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
       }
     });
 
-    // NSLog 不进 Kazumi 的日志文件，所以把渲染器状态的变化写一份到
-    // KazumiLogger，出问题时可以直接从容器里取日志定位。
-    if (stats.status != _lastLoggedStatus) {
-      _lastLoggedStatus = stats.status;
-      KazumiLogger().i(
-        '[Enhance] fps=${_fps.toStringAsFixed(1)} $stats',
+    // KazumiLogOutput 只把 warning/error 写进日志文件（info 仅 print 到
+    // stdout），所以诊断信息必须用 warning 级别才留得下来。每两次采样
+    // （约 1 s）记一条，能看出计数随时间的变化趋势。
+    _sampleCount += 1;
+    if (_sampleCount.isEven) {
+      KazumiLogger().w(
+        '[Enhance] fps=${_fps.toStringAsFixed(1)} '
+        'frames=${stats.presentedFrames} $stats',
       );
     }
   }
@@ -130,10 +136,10 @@ class _PlayerFpsOverlayState extends State<PlayerFpsOverlay> {
             ),
             if (_status.isNotEmpty)
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
+                constraints: const BoxConstraints(maxWidth: 300),
                 child: Text(
                   _status,
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
                   style: const TextStyle(color: Colors.white70, fontSize: 9),
