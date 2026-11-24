@@ -94,15 +94,25 @@ dependencies:
       ref: 8b0d1a625795f2ec679f844349e11f77249f41b0
   media_kit:
     git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: 484639aca5ffc754a65876c22f01dbb070225732
+      url: https://github.com/zxhzxhz/media-kit.git
+      ref: cc057f88f449310464ce7e53d14d8c91f73743f1
       path: ./media_kit
   media_kit_video:
     git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: 484639aca5ffc754a65876c22f01dbb070225732
+      url: https://github.com/zxhzxhz/media-kit.git
+      ref: cc057f88f449310464ce7e53d14d8c91f73743f1
       path: ./media_kit_video
   macos_secure_bookmarks: ^0.2.1
+
+# NOTE: the two media_kit entries above point at the Kazumi fork that carries
+# the iOS 26 video enhancement work. For local iteration on that fork, add a
+# (do not commit) override:
+#
+# dependency_overrides:
+#   media_kit:
+#     path: ../media-kit/media_kit
+#   media_kit_video:
+#     path: ../media-kit/media_kit_video
 
 dev_dependencies:
   path_provider_platform_interface: ^2.1.2

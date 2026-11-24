@@ -418,6 +418,32 @@ class SettingsKeys {
     false,
     group: SettingGroup.player,
   );
+  /// iOS 26+ 视频增强总开关：0 关闭，1 开启。
+  ///
+  /// 仅 iOS 生效，其它平台忽略（需要 iPadOS 26 及以上）。
+  static const videoEnhanceMode = SettingKey<int>(
+    'videoEnhanceMode',
+    0,
+    group: SettingGroup.player,
+  );
+  /// VideoToolbox 低延迟插帧（2x）：在相邻帧之间生成中间帧，需 iPadOS 26。
+  static const videoEnhanceInterpolation = SettingKey<bool>(
+    'videoEnhanceInterpolation',
+    false,
+    group: SettingGroup.player,
+  );
+  /// VideoToolbox 低延迟超分倍率，0 表示关闭，需 iPadOS 26。
+  static const videoEnhanceScaleFactor = SettingKey<double>(
+    'videoEnhanceScaleFactor',
+    0.0,
+    group: SettingGroup.player,
+  );
+  /// Metal Anime4K 档位：0 关闭 / 1 效率 / 2 质量。
+  static const videoEnhanceAnime4k = SettingKey<int>(
+    'videoEnhanceAnime4k',
+    0,
+    group: SettingGroup.player,
+  );
   static const playerDisableAnimations = SettingKey<bool>(
     _SettingBoxKey.playerDisableAnimations,
     false,
@@ -656,6 +682,10 @@ class SettingsKeys {
     androidAutoEnterPIP,
     defaultSuperResolutionMode,
     disableSuperResolutionWarning,
+    videoEnhanceMode,
+    videoEnhanceInterpolation,
+    videoEnhanceScaleFactor,
+    videoEnhanceAnime4k,
     playerDisableAnimations,
     playerLogLevel,
     timelineNotShowAbandonedBangumis,

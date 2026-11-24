@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
@@ -406,6 +407,15 @@ abstract class _PlayerPlaybackController with Store {
         superResolutionMode = SuperResolutionMode.off;
       }
 
+      // iOS 26+ 视频增强：读取设置（会读 shader 文件，故先 await 再建 controller）。
+      VideoEnhanceConfiguration? enhanceConfiguration;
+      if (Platform.isIOS) {
+        enhanceConfiguration = await _buildEnhanceConfiguration();
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(candidate);
+        }
+      }
+
       videoController ??= VideoController(
         player,
         configuration: VideoControllerConfiguration(
@@ -414,6 +424,7 @@ abstract class _PlayerPlaybackController with Store {
           enableAndroidSurfaceProducer: false,
           hwdec: hAenable ? hardwareDecoder : 'no',
           androidAttachSurfaceAfterVideoParameters: false,
+          enhance: enhanceConfiguration,
         ),
       );
       player.setPlaylistMode(PlaylistMode.none);
@@ -443,9 +454,14 @@ abstract class _PlayerPlaybackController with Store {
       });
 
       if (superResolutionMode != SuperResolutionMode.off) {
-        await setShader(superResolutionMode, player: player);
-        if (!isCurrentPlayer(player)) {
-          return await _discardIfNotCurrent(candidate);
+        if (enhanceConfiguration == null) {
+          await setShader(superResolutionMode, player: player);
+          if (!isCurrentPlayer(player)) {
+            return await _discardIfNotCurrent(candidate);
+          }
+        } else {
+          // 增强管线已接管超分：不挂 mpv 侧的 glsl-shaders，避免双重锐化。
+          superResolutionMode = SuperResolutionMode.off;
         }
       }
 
@@ -521,6 +537,84 @@ abstract class _PlayerPlaybackController with Store {
       superResolutionMode = mode;
     } catch (e) {
       KazumiLogger().w('PlayerController: failed to set shader', error: e);
+    }
+  }
+
+  /// 构建 iOS 26+ 视频增强管线配置。
+  ///
+  /// 仅在 iOS 且用户开启增强时返回配置，其余情况返回 null，保证其它平台
+  /// 与原有关闭状态下的播放路径完全不变。
+  Future<VideoEnhanceConfiguration?> _buildEnhanceConfiguration() async {
+    if (!Platform.isIOS) {
+      return null;
+    }
+    try {
+      final int mode = GStorage.getSetting<int>(SettingsKeys.videoEnhanceMode);
+      if (mode == 0) {
+        return null;
+      }
+      final bool interpolation =
+          GStorage.getSetting<bool>(SettingsKeys.videoEnhanceInterpolation);
+      final double scaleFactor =
+          GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor);
+      final int anime4k =
+          GStorage.getSetting<int>(SettingsKeys.videoEnhanceAnime4k);
+
+      List<String> shaders = const <String>[];
+      String profile = 'off';
+      if (anime4k != 0) {
+        try {
+          // 1 = 效率（Lite），2 = 质量；其余非 0 值按质量处理。
+          final List<String> fileNames =
+              anime4k == 2 ? mpvAnime4KShaders : mpvAnime4KShadersLite;
+          final String directory = shaderAssetService.shadersDirectory.path;
+          final List<String> sources = <String>[];
+          for (final String fileName in fileNames) {
+            // 本文件未引入 package:path，且该目录仅 iOS 使用，直接拼接正斜杠。
+            sources.add(await File('$directory/$fileName').readAsString());
+          }
+          shaders = sources;
+          profile = anime4k == 2 ? 'quality' : 'efficiency';
+        } catch (e) {
+          // shader 读取失败只降级 Anime4K，不影响插帧与 VT 超分。
+          debugPrint(
+              'PlayerController: failed to load Anime4K shader sources: $e');
+          shaders = const <String>[];
+          profile = 'off';
+        }
+      }
+
+      final VideoEnhanceConfiguration configuration =
+          VideoEnhanceConfiguration(
+        interpolation: interpolation,
+        vtScaleFactor: scaleFactor,
+        anime4kShaders: shaders,
+        anime4kProfile: profile,
+      );
+      return configuration.isEnabled ? configuration : null;
+    } catch (e) {
+      // 增强失败绝不能影响播放，任何异常都退化为原生渲染。
+      debugPrint('PlayerController: failed to build enhance configuration: $e');
+      return null;
+    }
+  }
+
+  /// 热切换 iOS 26+ 视频增强管线，设置变更后调用。
+  Future<void> setEnhancePipeline() async {
+    final VideoController? controller = videoController;
+    if (controller == null) {
+      return;
+    }
+    try {
+      final VideoEnhanceConfiguration? configuration =
+          await _buildEnhanceConfiguration();
+      await controller.setEnhancePipeline(configuration);
+      if (configuration != null) {
+        // VT 接管超分后必须清空 mpv 侧 glsl-shaders，避免双重锐化与双份开销。
+        await setShader(SuperResolutionMode.off);
+      }
+    } catch (e) {
+      debugPrint('PlayerController: failed to set enhance pipeline: $e');
     }
   }
 
