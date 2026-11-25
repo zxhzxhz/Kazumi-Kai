@@ -20,6 +20,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   late bool videoEnhanceEnabled;
   late bool videoEnhanceInterpolationEnabled;
   late bool videoEnhanceScalingEnabled;
+  late bool videoEnhanceDualScale15x;
   late int videoEnhanceAnime4kLevel;
 
   @override
@@ -38,6 +39,9 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
     );
     videoEnhanceScalingEnabled =
         GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor) > 1.0;
+    videoEnhanceDualScale15x = GStorage.getSetting<bool>(
+      SettingsKeys.videoEnhanceDualScale15x,
+    );
     videoEnhanceAnime4kLevel =
         GStorage.getSetting<int>(SettingsKeys.videoEnhanceAnime4k);
   }
@@ -137,6 +141,23 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   await GStorage.putSetting<double>(
                     SettingsKeys.videoEnhanceScaleFactor,
                     videoEnhanceScalingEnabled ? 2.0 : 0.0,
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
+              SettingsTile.switchTile(
+                leading: Icons.tune_rounded,
+                title: const Text('双开时超分调整至 1.5x'),
+                description: const Text(
+                  '同时开启 VT 插帧与 VT 放大时自动使用 1.5x 超分，降低负载并提升帧率',
+                ),
+                initialValue: videoEnhanceDualScale15x,
+                enabled: Platform.isIOS && videoEnhanceEnabled,
+                onToggle: (value) async {
+                  videoEnhanceDualScale15x = value ?? !videoEnhanceDualScale15x;
+                  await GStorage.putSetting<bool>(
+                    SettingsKeys.videoEnhanceDualScale15x,
+                    videoEnhanceDualScale15x,
                   );
                   if (mounted) setState(() {});
                 },

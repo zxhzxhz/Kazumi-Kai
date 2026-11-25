@@ -55,3 +55,12 @@ android/build/reports/problems/
 **/macos/Pods/
 **/ios/Podfile.lock
 **/macos/Podfile.lock
+
+# Process documents and build staging
+advisoranswer*.md
+askadvisor*.md
+*开发文档*.md
+.tmp/
+dist/
+Payload/
+*.ipa

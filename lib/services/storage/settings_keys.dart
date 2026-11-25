@@ -438,6 +438,12 @@ class SettingsKeys {
     0.0,
     group: SettingGroup.player,
   );
+  /// 同时开启 VT 插帧与 VT 放大时，将超分倍率调整至 1.5x，降低负载提升帧率。
+  static const videoEnhanceDualScale15x = SettingKey<bool>(
+    'videoEnhanceDualScale15x',
+    true,
+    group: SettingGroup.player,
+  );
   /// Metal Anime4K 档位：0 关闭 / 1 效率 / 2 质量。
   static const videoEnhanceAnime4k = SettingKey<int>(
     'videoEnhanceAnime4k',
@@ -691,6 +697,7 @@ class SettingsKeys {
     videoEnhanceMode,
     videoEnhanceInterpolation,
     videoEnhanceScaleFactor,
+    videoEnhanceDualScale15x,
     videoEnhanceAnime4k,
     playerShowFps,
     playerDisableAnimations,

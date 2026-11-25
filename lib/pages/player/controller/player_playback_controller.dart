@@ -97,13 +97,14 @@ abstract class _PlayerPlaybackController with Store {
 
   /// 开始监听视频增强设置（幂等）。
   ///
-  /// 设置页、播放器面板、or 任何写 GStorage 的地方改动这四个键后，这里统一
+  /// 设置页、播放器面板、or 任何写 GStorage 的地方改动增强设置后，这里统一
   /// 触发一次热切换，避免每个入口各自持有 PlayerController 再手动调用。
   void watchEnhanceSettings() {
     _enhanceSettingsSubscription ??= GStorage.watchSettings([
       SettingsKeys.videoEnhanceMode,
       SettingsKeys.videoEnhanceInterpolation,
       SettingsKeys.videoEnhanceScaleFactor,
+      SettingsKeys.videoEnhanceDualScale15x,
       SettingsKeys.videoEnhanceAnime4k,
     ]).listen((_) {
       unawaited(setEnhancePipeline());
@@ -583,6 +584,12 @@ abstract class _PlayerPlaybackController with Store {
           GStorage.getSetting<bool>(SettingsKeys.videoEnhanceInterpolation);
       final double scaleFactor =
           GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor);
+      final bool dualScale15x =
+          GStorage.getSetting<bool>(SettingsKeys.videoEnhanceDualScale15x);
+      final double effectiveScaleFactor =
+          (interpolation && scaleFactor > 1.5 && dualScale15x)
+              ? 1.5
+              : scaleFactor;
       final int anime4k =
           GStorage.getSetting<int>(SettingsKeys.videoEnhanceAnime4k);
 
@@ -613,7 +620,7 @@ abstract class _PlayerPlaybackController with Store {
       final VideoEnhanceConfiguration configuration =
           VideoEnhanceConfiguration(
         interpolation: interpolation,
-        vtScaleFactor: scaleFactor,
+        vtScaleFactor: effectiveScaleFactor,
         anime4kShaders: shaders,
         anime4kProfile: profile,
       );

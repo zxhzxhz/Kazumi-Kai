@@ -646,6 +646,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         GStorage.getSetting<bool>(SettingsKeys.videoEnhanceInterpolation);
     final scaling =
         GStorage.getSetting<double>(SettingsKeys.videoEnhanceScaleFactor) > 1.0;
+    final dualScale15x =
+        GStorage.getSetting<bool>(SettingsKeys.videoEnhanceDualScale15x);
+    final scaleLabel = (interpolation && dualScale15x) ? '1.5x' : '2x';
     return [
       if (Platform.isIOS) ...[
         ..._choiceItems<bool>(
@@ -656,7 +659,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         ),
         ..._choiceItems<bool>(
           const [true, false],
-          label: (value) => value ? 'VT 放大：开（2x）' : 'VT 放大：关',
+          label: (value) => value ? 'VT 放大：开（$scaleLabel）' : 'VT 放大：关',
           selected: (value) => value == scaling,
           onSelected: (value) => _setVtScaling(value),
         ),
